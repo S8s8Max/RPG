@@ -19,7 +19,7 @@ typedef enum
 #define ELEMENT_COLORS = {"\e[31m", "\e[34m", "\e[32m", "\e[33m", "\e[35m", "\e[30m"};
 int num = 0;
 /*** struct ***/
-typedef struct
+typedef struct Monster
 {
     char name[50];
     int type;
@@ -31,7 +31,7 @@ typedef struct
 
 typedef struct
 {
-    Monster monsters[];
+    Monster monsters[20];
 } Dungeon;
 
 /*** prototype ***/
@@ -71,29 +71,7 @@ int main(int argc, char** argv)
 }
 
 /*** utility ***/
-void printMonsterName(Monster* monster)
+void printMonsterName(Monster monster)
 {
-    int type = (*monster).type;
-    char t;
-    switch (type){
-    case Fire:
-        t = ELEMENT_SYMBOLS[0];
-        printf("\x1b[31m%c\x1b[31m%c\x1b[31m%c", t, monster->name, t);
-    case Water:
-        t = ELEMENT_SYMBOLS[1];
-        printf("\x1b[31m%c\x1b[31m%c\x1b[31m%c", t, monster->name, t);
-    case Wind:
-        t = ELEMENT_SYMBOLS[2];
-        printf("\x1b[31m%c\x1b[31m%c\x1b[31m%c", t, monster->name, t);
-    case Earth:
-        t = ELEMENT_SYMBOLS[3];
-        printf("\x1b[31m%c\x1b[31m%c\x1b[31m%c", t, monster->name, t);
-    case Life:
-        t = ELEMENT_SYMBOLS[4];
-        printf("\x1b[31m%c\x1b[31m%c\x1b[31m%c", t, monster->name, t);
-    case Empty:
-        t = ELEMENT_SYMBOLS[5];
-        printf("\x1b[31m%c\x1b[31m%c\x1b[31m%c", t, monster->name, t);
-    }
 }
 
