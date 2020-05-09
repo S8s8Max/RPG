@@ -1,7 +1,7 @@
 /*=== puzmon0: source code ===*/
 /*** include ***/
 
-#include <bits/stdc++.h>
+#include <stdio.h>
 
 /*** enum ***/
 typedef enum Element
@@ -16,10 +16,9 @@ typedef enum Element
 
 /*** global const ***/
 const char ELEMENT_SYMBOLS[] = {'$', '~', '@', '#', '&', ' '};
-const char ELEMENT_COLORS[] = {"\e[31m", "\e[34m", "\e[32m", "\e[33m", "\e[35m", "\e[30m"};
-int num = 0;
+const char ELEMENT_COLORS[] = {1, 6, 2, 3, 5, 0};
 /*** struct ***/
-typedef struct Monster
+typedef struct MONSTER
 {
     char name[25];
     int type;
@@ -29,80 +28,84 @@ typedef struct Monster
     int defense;
 } Monster;
 
-typedef struct Dungeon
+typedef struct DUNGEON
 {
-    Monster monsters[20];
+    Monster* monsters;
+    const int num_of_monster;
 } Dungeon;
 
-/*** prototype ***/
+/*** prototype declaration ***/
+int goDungeon(char* playerName, Dungeon* pDungeon);
+int doBattle(char* playerName, Monster* pEnemy);
+//*** utility function ***/
+void printMonsterName(Monster* pEnemy);
 
-/*** function ***/
-void printMonsterName(Monster monster);
+/*** function -include main func- ***/
 
-void doBattle(Monster monster)
-{
-    printMonsterName(monster);
-    num++;
-}
-
-void goDungeon(char* playerName)
-{
-    printf("\n%s has arrived at a dungeon.\n", playerName);
-    Monster slime = {"Slime", Water, 100, 100, 10, 5};
-    Monster goblin = {"Goblin", Earth, 200, 200, 20, 15};
-    Monster big_bat = {"Big Bat", Wind, 300, 300, 30, 25};
-    Monster wolf = {"Wolf", Wind, 400, 400, 40, 30};
-    Monster dragon = {"Dragon", Fire, 800, 800, 50, 40};
-    doBattle(slime);
-    doBattle(goblin);
-    doBattle(big_bat);
-    doBattle(wolf);
-    doBattle(dragon);
-}
-
-
+// (1)Game Start
 int main(int argc, char** argv)
 {
-    printf("\n\e[3m*** Puzzele & Monsters ***\n");
-    goDungeon(argv[1]);
-    printf("\n*** Game Cleared! ***\n");
-    printf("You beat %d monsters!!", num);
+    if (argc != 2) {
+        printf("Error : Type player name and start.");
+        return 1;
+    }
+
+    printf("\n*** Puzzele & Monsters ***\n\n");
+
+    // Set Monsters and Dungeon
+    Monster dungeonMonsters[] = {
+        {"Slime", Water, 100, 100, 10, 5},
+        {"Goblin", Earth, 200, 200, 20, 15},
+        {"Big Bat", Wind, 300, 300, 30, 25},
+        {"Wolf", Wind, 400, 400, 40, 30},
+        {"Dragon", Fire, 800, 800, 50, 40}
+    };
+    int number_of_monster = sizeof(dungeonMonsters)/sizeof(Monster);
+    Dungeon dungeon = {dungeonMonsters, number_of_monster};
+    
+    // Into the Adventure
+    int winCount = goDungeon(argv[1], &dungeon);
+
+    // After the adventure
+    if (winCount == dungeon.num_of_monster) {
+        printf("\n*** GAME CLEAR! ***\n");
+    } else {
+        printf("\n*** GAME OVER ***\n");
+    }
+    printf("You beat %d monsters!!\n", winCount);
     return 0;
 }
 
-/*** utility ***/
-void printMonsterName(Monster monster)
+// (2) The flow from the beginning of a dungeon to the end
+int goDungeon(char* playerName, Dungeon* dungeon)
 {
-    char symbol, color;
-    switch (monster.type)
-    {
-    case Fire:
-        symbol = ELEMENT_SYMBOLS[Fire];
-        color = ELEMENT_COLORS[Fire];
-        printf("color%ccolor%scolor%c", symbol, monster.name, symbol);
-        return;
-    case Water:
-        symbol = ELEMENT_SYMBOLS[Fire];
-        color = ELEMENT_COLORS[Fire];
-        printf("color%ccolor%scolor%c", symbol, monster.name, symbol);
-        return;
-    case Wind:
-        symbol = ELEMENT_SYMBOLS[Fire];
-        color = ELEMENT_COLORS[Fire];
-        printf("color%ccolor%scolor%c", symbol, monster.name, symbol);
-        return;
-    case Earth:
-        symbol = ELEMENT_SYMBOLS[Fire];
-        color = ELEMENT_COLORS[Fire];
-        printf("color%ccolor%scolor%c", symbol, monster.name, symbol);
-        return;
-    case Empty:
-        symbol = ELEMENT_SYMBOLS[Fire];
-        color = ELEMENT_COLORS[Fire];
-        printf("color%ccolor%scolor%c", symbol, monster.name, symbol);
-        return;
+    printf("%s has arrived at Dungeon.\n\n", playerName);
+
+    int winCount = 0;
+    for (int i = 0; i < dungeon->num_of_monster; ++i) {
+        winCount += doBattle(playerName, &(dungeon->monsters[i]));
     }
-    printf(" appeared!\n");
-    printf("You defeated %s!\n", monster.name);
+    printf("\n%s conquered the Dungeon!\n", playerName);
+    return winCount;
 }
 
+// (3) The flow from the beginning of the battle to the end
+int doBattle(char* playerName, Monster* pEnemy)
+{
+    printMonsterName(pEnemy);
+    printf(" appeared!\n");
+    printf("You defeated ");
+    printMonsterName(pEnemy);
+    printf("\n\n");
+    return 1;
+}
+
+/*** utility function ***/
+void printMonsterName(Monster* pEnemy)
+{
+    char symbol = ELEMENT_SYMBOLS[pEnemy->type];
+    int color = ELEMENT_COLORS[pEnemy->type];
+    printf("\x1b[3%dm", color);
+    printf("%c%s%c", symbol, pEnemy->name, symbol);
+    printf("\x1b[0m");
+}
