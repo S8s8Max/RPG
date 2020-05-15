@@ -2,22 +2,23 @@
 /*** include ***/
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include <stdbool.h>
 
 /*** enum ***/
 typedef enum Element
-{
-    Fire,
-    Water,
-    Wind,
-    Earth,
-    Life,
-    Empty,
-} Element;
+{FIRE, WATER, WIND, EARTH, LIFE, EMPTY} Element;
 
 /*** global const ***/
-const char ELEMENT_SYMBOLS[] = {'$', '~', '@', '#', '&', ' '};
-const char ELEMENT_COLORS[] = {1, 6, 2, 3, 5, 0};
+
+// (1) The symbols representing monsters' elements.
+const char ELEMENT_SYMBOLS[EMPTY+1] = {'$', '~', '@', '#', '&', ' '};
+// (2) The Color codes representing monsters' element.
+const char ELEMENT_COLORS[EMPTY+1] = {1, 6, 2, 3, 5, 0};
+// (3) The number of gems
+enum {MAX_GEMS = 14};
+
 /*** struct ***/
 typedef struct MONSTER
 {
@@ -28,7 +29,6 @@ typedef struct MONSTER
     int attack;
     int defense;
 } Monster;
-
 typedef struct PARTY
 {
     char* playerName;
@@ -38,24 +38,35 @@ typedef struct PARTY
     int party_HP;
     const int defense;
 } Party;
-
 typedef struct DUNGEON
 {
     Monster* monsters;
     const int num_of_monster;
 } Dungeon;
+typedef struct BATTLE_FIELD
+{
+    Party* pParty;
+    Monster* pEnemy;
+    Element gems[MAX_GEMS];
+} BattleField;
 
 /*** prototype declaration ***/
 int goDungeon(Party* pParty, Dungeon* pDungeon);
 int doBattle(Party* pParty, Monster* pEnemy);
 Party organizeParty(char *playerName, Monster* monsters, int num_of_party_member);
 void printParty(Party* pParty);
-void onPlayerTurn(Party* pParty, Monster* pEnemy);
-void onEnemyTurn(Party* pParty, Monster* pEnemy);
-void doPlayerAttack(Monster* pEnemy);
-void doEnemyAttack(Party* pParty);
+void onPlayerTurn(BattleField* pField);
+void onEnemyTurn(BattleField* pField);
+void doPlayerAttack(BattleField* pField);
+void doEnemyAttack(BattleField* pField);
+void printBattleField(BattleField* pField);
+
 //*** utility function ***/
 void printMonsterName(Monster* pEnemy);
+void fillGems(Element* gems);
+void printGems(Element* gems);
+void printGem(Element gems);
+
 /*** function -include main func- ***/
 
 // (1)Game Start
@@ -70,10 +81,10 @@ int main(int argc, char** argv)
 
     // Set Party members
     Monster party_monsters[] = {
-        {"Seiryu", Wind, 150, 150, 15, 10},
-        {"Byakko", Earth, 150, 150, 20, 5},
-        {"Genbu",  Water, 150, 150, 20, 15},
-        {"Suzaku", Fire, 150, 150, 25, 10}
+        {"Seiryu", WIND, 150, 150, 15, 10},
+        {"Byakko", EARTH, 150, 150, 20, 5},
+        {"Genbu",  WATER, 150, 150, 20, 15},
+        {"Suzaku", FIRE, 150, 150, 25, 10}
     };
     int size = sizeof(party_monsters)/sizeof(Monster);
     Party party = organizeParty(argv[1], party_monsters, size);
@@ -84,15 +95,15 @@ int main(int argc, char** argv)
 
     // Set Monsters and Dungeon
     Monster dungeonMonsters[] = {
-        {"Slime", Water, 100, 100, 10, 5},
-        {"Goblin", Earth, 200, 200, 20, 15},
-        {"Big Bat", Wind, 300, 300, 30, 25},
-        {"Wolf", Wind, 400, 400, 40, 30},
-        {"Dragon", Fire, 800, 800, 50, 40}
+        {"Slime", WATER, 100, 100, 10, 5},
+        {"Goblin", EARTH, 200, 200, 20, 15},
+        {"Big Bat", WIND, 300, 300, 30, 25},
+        {"Wolf", WIND, 400, 400, 40, 30},
+        {"Dragon", FIRE, 800, 800, 50, 40}
     };
     int number_of_monster = sizeof(dungeonMonsters)/sizeof(Monster);
     Dungeon dungeon = {dungeonMonsters, number_of_monster};
-    
+
     // Into the Adventure
     int winCount = goDungeon(&party, &dungeon);
 
@@ -128,47 +139,30 @@ int goDungeon(Party* pParty, Dungeon* dungeon)
 int doBattle(Party* pParty, Monster* pEnemy)
 {
     // Encount
+    printf("   .\n");
+    printf("   .\n");
+    printf("   .\n");
     printMonsterName(pEnemy);
     printf(" appeared!\n");
 
+    BattleField field = {pParty, pEnemy};
+    fillGems(field.gems);
+
     // Battle
     while (true) {
-        onPlayerTurn(pParty, pEnemy);
+        onPlayerTurn(&field);
         if (pEnemy->current_HP <= 0) {
             printMonsterName(pEnemy);
             printf(" was defeated.\n");
             return 1;
         }
-        onEnemyTurn(pParty, pEnemy);
+        onEnemyTurn(&field);
         if (pParty->party_HP <= 0) {
             printf("%s was defeated...\n\n", pParty->playerName);
             return 0;
         }
     }
 }
-
-void onPlayerTurn(Party* pParty, Monster* pEnemy)
-{
-    printf("\n [%s's turn]\n", pParty->playerName);
-    doPlayerAttack(pEnemy);
-}
-void doPlayerAttack(Monster* pEnemy)
-{
-    pEnemy->current_HP -= 80;
-    printf("Atack! %d damages.\n\n", 80);
-}
-void onEnemyTurn(Party* pParty, Monster* pEnemy)
-{
-    printf("\n [%s's turn]\n", pEnemy->name);
-    doEnemyAttack(pParty);
-}
-void doEnemyAttack(Party* pParty)
-{
-    pParty->party_HP -= 20;
-    printf("Attack! You got %d damages.\n", 20);
-    return;
-}
-
 Party organizeParty(char* playerName, Monster* party_monsters, int num_of_party_member)
 {
     int party_HP = 0;
@@ -187,11 +181,10 @@ Party organizeParty(char* playerName, Monster* party_monsters, int num_of_party_
                    defense};
     return party;
 }
-
 void printParty(Party* pParty)
 {
     printf("< Party Information >");
-    printf("--------------\n");
+    printf("----------\n\n");
     for (int i = 0; i < pParty->num_of_party_member; ++i) {
         printMonsterName(&(pParty->monsters[i]));
         printf(" HP=%4d AT=%3d DF=%3d\n",
@@ -200,7 +193,54 @@ void printParty(Party* pParty)
             pParty->monsters[i].defense
         );
     }
-    printf("-------------------------------\n");
+    printf("\n-------------------------------\n\n");
+}
+void onPlayerTurn(BattleField *pField)
+{
+    printf("\n [%s's turn]\n", pField->pParty->playerName);
+    printBattleField(pField);
+    doPlayerAttack(pField);
+}
+void doPlayerAttack(BattleField *pField)
+{
+    pField->pEnemy->current_HP -= 80;
+    printf("Atack! %d damages.\n\n", 80);
+}
+void onEnemyTurn(BattleField *pField)
+{
+    printf("\n [%s's turn]\n", pField->pEnemy->name);
+    doEnemyAttack(pField);
+}
+void doEnemyAttack(BattleField *pField)
+{
+    pField->pParty->party_HP -= 20;
+    printf("Attack! You got %d damages.\n", 20);
+}
+void printBattleField(BattleField* pField)
+{
+    printf("------------------------------\n\n");
+    printf("          ");
+    printMonsterName(pField->pEnemy);
+    printf("\n        HP= %4d / %4d\n",
+            pField->pEnemy->current_HP,
+            pField->pEnemy->max_HP);
+    printf("\n\n");
+    for (int i = 0; i < pField->pParty->num_of_party_member; ++i) {
+        printMonsterName(&(pField->pParty->monsters[i]));
+        printf("  ");
+    }
+    printf("\n");
+    printf("        HP= %4d / %4d\n",
+            pField->pParty->party_HP,
+            pField->pParty->party_max_HP);
+    printf("------------------------------\n");
+    printf(" ");
+    for (int i = 0; i < MAX_GEMS; ++i) {
+        printf("%c ", 'A' + i);
+    }
+    printf("\n");
+    printGems(pField->gems);
+    printf("\n------------------------------\n");
 }
 
 /*** utility function ***/
@@ -211,4 +251,24 @@ void printMonsterName(Monster* pMonster)
     printf("\x1b[3%dm", color);
     printf("%c%s%c", symbol, pMonster->name, symbol);
     printf("\x1b[0m");
+}
+void fillGems(Element* gems)
+{
+    for (int i = 0; i < MAX_GEMS; ++i) {
+        gems[i] = (Element)(rand() % EMPTY);
+    }
+}
+void printGems(Element* gems)
+{
+    for (int i = 0; i < MAX_GEMS; ++i) {
+        printf(" ");
+        printGem(gems[i]);
+    }
+}
+void printGem(Element e)
+{
+    printf("\x1b[30m");                     // Black letters
+    printf("\x1b[4%dm", ELEMENT_COLORS[e]); // Background color of the element
+    printf("%c", ELEMENT_SYMBOLS[e]);
+    printf("\x1b[0m");                      // Release the color identifier
 }
