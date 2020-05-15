@@ -2,6 +2,7 @@
 /*** include ***/
 
 #include <stdio.h>
+#include <stdbool.h>
 
 /*** enum ***/
 typedef enum Element
@@ -33,8 +34,9 @@ typedef struct PARTY
     char* playerName;
     Monster* monsters;
     const int num_of_party_member;
-    const int party_HP;
     const int party_max_HP;
+    int party_HP;
+    const int defense;
 } Party;
 
 typedef struct DUNGEON
@@ -46,9 +48,12 @@ typedef struct DUNGEON
 /*** prototype declaration ***/
 int goDungeon(Party* pParty, Dungeon* pDungeon);
 int doBattle(Party* pParty, Monster* pEnemy);
-int calc_party_HP(int party_size, Monster* party_monsters);
 Party organizeParty(char *playerName, Monster* monsters, int num_of_party_member);
 void printParty(Party* pParty);
+void onPlayerTurn(Party* pParty, Monster* pEnemy);
+void onEnemyTurn(Party* pParty, Monster* pEnemy);
+void doPlayerAttack(Monster* pEnemy);
+void doEnemyAttack(Party* pParty);
 //*** utility function ***/
 void printMonsterName(Monster* pEnemy);
 /*** function -include main func- ***/
@@ -122,12 +127,46 @@ int goDungeon(Party* pParty, Dungeon* dungeon)
 // (3) The flow from the beginning of the battle to the end
 int doBattle(Party* pParty, Monster* pEnemy)
 {
+    // Encount
     printMonsterName(pEnemy);
     printf(" appeared!\n");
-    printf("You defeated ");
-    printMonsterName(pEnemy);
-    printf("\n%s goes forward...\n\n", pParty->playerName);
-    return 1;
+
+    // Battle
+    while (true) {
+        onPlayerTurn(pParty, pEnemy);
+        if (pEnemy->current_HP <= 0) {
+            printMonsterName(pEnemy);
+            printf(" was defeated.\n");
+            return 1;
+        }
+        onEnemyTurn(pParty, pEnemy);
+        if (pParty->party_HP <= 0) {
+            printf("%s was defeated...\n\n", pParty->playerName);
+            return 0;
+        }
+    }
+}
+
+void onPlayerTurn(Party* pParty, Monster* pEnemy)
+{
+    printf("\n [%s's turn]\n", pParty->playerName);
+    doPlayerAttack(pEnemy);
+}
+void doPlayerAttack(Monster* pEnemy)
+{
+    pEnemy->current_HP -= 80;
+    printf("Atack! %d damages.\n\n", 80);
+}
+void onEnemyTurn(Party* pParty, Monster* pEnemy)
+{
+    printf("\n [%s's turn]\n", pEnemy->name);
+    doEnemyAttack(pParty);
+}
+void doEnemyAttack(Party* pParty)
+{
+    pParty->party_HP -= 20;
+    printf("Attack! You got %d damages.\n", 20);
+    return;
 }
 
 Party organizeParty(char* playerName, Monster* party_monsters, int num_of_party_member)
@@ -144,13 +183,14 @@ Party organizeParty(char* playerName, Monster* party_monsters, int num_of_party_
                    party_monsters,
                    num_of_party_member,
                    party_HP,
+                   party_HP,
                    defense};
     return party;
 }
 
 void printParty(Party* pParty)
 {
-    printf("< Party Members >");
+    printf("< Party Information >");
     printf("--------------\n");
     for (int i = 0; i < pParty->num_of_party_member; ++i) {
         printMonsterName(&(pParty->monsters[i]));
